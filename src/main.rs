@@ -1,6 +1,7 @@
 extern crate hyper;
 extern crate rustc_serialize;
 
+use std::fmt;
 use std::io::Read;
 use std::result::{Result};
 use rustc_serialize::json::Json;
@@ -9,17 +10,46 @@ use hyper::{Client};
 struct TheMovieDB {
 	api_key: &'static str,
 	base_url: &'static str,
+	image_base_url: String,
 	http_client: Client,
 }
 
+impl fmt::Debug for TheMovieDB {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "TheMovieDB => ApiKey: {}, BaseURL: {}, ImageBaseURL: {}",
+		 self.api_key,
+		 self.base_url,
+		 self.image_base_url)
+    }
+}
+
 impl TheMovieDB {
+	/// Constructs a new TheMovieDB`.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use std::rc::Rc;
+	///
+	/// let five = Rc::new(5);
+	/// ```
 	fn new(themoviedb_api_key: &'static str) -> Result<TheMovieDB, String> {
-		let new_instance = TheMovieDB{api_key: themoviedb_api_key,
+		let mut new_instance = TheMovieDB{api_key: themoviedb_api_key,
 			base_url: "https://api.themoviedb.org/3",
+			image_base_url: "".to_string(),
 			http_client: Client::new()};
 
-		let configuration_data = new_instance.get_json_data_for("/configuration");
-		println!("{:?}", configuration_data);
+		let configuration_data = match new_instance.get_json_data_for("/configuration") {
+			Ok(c) => c,
+			Err(error_string) => return Err(error_string)
+		};
+
+		let json_obj = match configuration_data.as_object() {
+			Some(o) => o,
+			None => return Err("Error while getting JSON object".to_string())
+		};
+
+		new_instance.image_base_url = json_obj.get("images").unwrap().as_object().unwrap().get("secure_base_url").unwrap().to_string();
 
 		Ok(new_instance)
 	}
@@ -58,31 +88,16 @@ impl TheMovieDB {
 
 		Ok(json_data)
 	}
-
-	fn test(& self) -> String {
-		let call_url = format!("https://api.themoviedb.org/3/movie/5wcerweuioybrcqpwyr850?api_key={}", self.api_key);
-
-		let mut res = self.http_client.get(&call_url).send().unwrap();
-		assert_eq!(res.status, hyper::Ok);
-
-		let mut result = String::new();
-		res.read_to_string(& mut result).unwrap();
-
-		let json_data = Json::from_str(&result).unwrap();
-		let json_obj = json_data .as_object().unwrap();
-
-	    json_obj.get("original_title").unwrap().as_string().unwrap().to_string()
-	}
 }
 
-#[test]
-fn it_works() {
-	// TODO: Real tests ;)
-	assert!("Four Rooms" == TheMovieDB { api_key: "6da14fa0b6231874a56ee667a505cdcc" }.test());
-}
+// #[test]
+// fn it_works() {
+// 	// TODO: Real tests ;)
+// 	assert!("Four Rooms" == TheMovieDB { api_key: "6da14fa0b6231874a56ee667a505cdcc" }.test());
+// }
 
 fn main() {
-    let themdb = TheMovieDB::new("6da14fa0b6231874a56ee667a505cdcc");
+    let themdb = TheMovieDB::new("6da14fa0b6231874a56ee667a505cdcc").unwrap();
 
-    println!("{}", themdb.unwrap().test());
+	println!("{:?}", themdb);
 }
