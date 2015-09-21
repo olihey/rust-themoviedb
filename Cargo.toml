@@ -1,0 +1,8 @@
+[package]
+name = "themoviedb"
+version = "0.1.0"
+authors = ["Oliver Heyme <olihey@googlemail.com>"]
+
+[dependencies]
+hyper = "*"
+rustc-serialize = "*"
