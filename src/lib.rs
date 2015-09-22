@@ -7,7 +7,9 @@ use std::fmt;
 use std::io::Read;
 use std::result::{Result};
 use rustc_serialize::json::Json;
-use hyper::{Client};
+use hyper::{Client, Url};
+
+static TESTAPIKEY: &'static str = "YOUR API KEY FROM themoviedb.org";
 
 /// the struct to keep
 pub struct TheMovieDB {
@@ -61,30 +63,49 @@ impl TheMovieDB {
 		Ok(new_instance)
 	}
 
+	fn search(& self, search_term: &'static str) -> Result<String, String> {
+		let search_data = match self.get_json_data_for(search_term) {
+			Ok(d) => d,
+			Err(error_string) => return Err(error_string)
+		};
+
+		println!("{:?}", search_data);
+
+		Err("FAILED".to_string())
+	}
+
 	/// Returns a URL as String for the given API method
 	///
 	/// It also automatically adds the api key
-	fn get_url_for(& self, url_string: &'static str) -> String {
-		if url_string.contains("?") {
-			format!("{}{}&api_key={}", self.base_url, url_string, self.api_key)
-		} else {
-			format!("{}{}?api_key={}", self.base_url, url_string, self.api_key)
-		}
+	fn get_url_for(& self, url_string: &'static str) -> Result<Url, String> {
+//		if url_string.contains("?") {
+			let result_url = match Url::parse(&format!("{}{}&api_key={}", self.base_url, url_string, self.api_key)) {
+				Ok(u) => u,
+				Err(_) => return Err(format!("Error buildign URL"))
+			};
+			Ok(result_url)
+		// } else {
+		// 	format!("{}{}?api_key={}", self.base_url, url_string, self.api_key)
+//		}
 	}
 
 	/// Returns the data for a given API method or an error string if something has failed
 	fn get_json_data_for(& self, url_string: &'static str) -> Result<Json, String> {
-		let call_url = self.get_url_for(url_string);
+		let call_url = match self.get_url_for(url_string) {
+			Ok(u) => u,
+			Err(error_string) => return Err(error_string)
+		};
 
-		let mut response = match self.http_client.get(&call_url).send() {
+		let call_url_string = format!("{}", call_url);
+		let mut response = match self.http_client.get(call_url).send() {
 			Ok(r) => r,
 			Err(_) => {
-				return Err("Error during HTTPS request".to_string());
+				return Err(format!("Error during HTTPS request with URL {}", call_url_string));
 			}
  		};
 
 		if hyper::Ok != response.status {
-			return Err("No HTTPS Status 200 (OK)".to_string());
+			return Err(format!("No HTTPS Status 200 (OK) for url: {}", call_url_string));
 		}
 
 		let mut result = String::new();
@@ -103,6 +124,11 @@ impl TheMovieDB {
 
 #[test]
 fn initialization_test() {
-	// TODO: Real tests ;)
-	assert!(TheMovieDB::new("6da14fa0b6231874a56ee667a505cdcc").is_ok());
+	TheMovieDB::new(TESTAPIKEY).unwrap();
+}
+
+#[test]
+fn search_test() {
+	let themoviedb = TheMovieDB::new(TESTAPIKEY).unwrap();
+	let search_result = themoviedb.search("The Avengers").unwrap();
 }
