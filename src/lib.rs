@@ -48,7 +48,7 @@ impl TheMovieDB {
 			image_base_url: "".to_string(),
 			http_client: Client::new()};
 
-		let configuration_data = match new_instance.get_json_data_for("/configuration") {
+		let configuration_data = match new_instance.get_json_data_for("/configuration".to_string()) {
 			Ok(c) => c,
 			Err(error_string) => return Err(error_string)
 		};
@@ -64,33 +64,35 @@ impl TheMovieDB {
 	}
 
 	fn search(& self, search_term: &'static str) -> Result<String, String> {
-		let search_data = match self.get_json_data_for(search_term) {
+		let search_data = match self.get_json_data_for(format!("/search/multi?query={}", search_term)) {
 			Ok(d) => d,
 			Err(error_string) => return Err(error_string)
 		};
 
-		println!("{:?}", search_data);
-
-		Err("FAILED".to_string())
+		Ok("TEST".to_string())
 	}
 
 	/// Returns a URL as String for the given API method
 	///
 	/// It also automatically adds the api key
-	fn get_url_for(& self, url_string: &'static str) -> Result<Url, String> {
-//		if url_string.contains("?") {
+	fn get_url_for(& self, url_string: String) -> Result<Url, String> {
+		if url_string.contains("?") {
 			let result_url = match Url::parse(&format!("{}{}&api_key={}", self.base_url, url_string, self.api_key)) {
 				Ok(u) => u,
 				Err(_) => return Err(format!("Error buildign URL"))
 			};
 			Ok(result_url)
-		// } else {
-		// 	format!("{}{}?api_key={}", self.base_url, url_string, self.api_key)
-//		}
+		 } else {
+			 let result_url = match Url::parse(&format!("{}{}?api_key={}", self.base_url, url_string, self.api_key)) {
+ 				Ok(u) => u,
+ 				Err(_) => return Err(format!("Error buildign URL"))
+ 			};
+ 			Ok(result_url)
+		}
 	}
 
 	/// Returns the data for a given API method or an error string if something has failed
-	fn get_json_data_for(& self, url_string: &'static str) -> Result<Json, String> {
+	fn get_json_data_for(& self, url_string: String) -> Result<Json, String> {
 		let call_url = match self.get_url_for(url_string) {
 			Ok(u) => u,
 			Err(error_string) => return Err(error_string)
