@@ -1,4 +1,6 @@
+/// for HTTPS
 extern crate hyper;
+/// to decode JSON data
 extern crate rustc_serialize;
 
 use std::fmt;
@@ -7,10 +9,15 @@ use std::result::{Result};
 use rustc_serialize::json::Json;
 use hyper::{Client};
 
-struct TheMovieDB {
+/// the struct to keep
+pub struct TheMovieDB {
+	/// the all mighty api key we need for each request
 	api_key: &'static str,
+	/// the base url for themoviedb.org
 	base_url: &'static str,
+	/// the base url for all images, comes from the /configuration URL
 	image_base_url: String,
+	/// the HTTPS client we use for getting data from the API
 	http_client: Client,
 }
 
@@ -24,7 +31,7 @@ impl fmt::Debug for TheMovieDB {
 }
 
 impl TheMovieDB {
-	/// Constructs a new TheMovieDB`.
+	/// Constructs a new TheMovieDB instance.
 	///
 	/// # Examples
 	///
@@ -54,6 +61,9 @@ impl TheMovieDB {
 		Ok(new_instance)
 	}
 
+	/// Returns a URL as String for the given API method
+	///
+	/// It also automatically adds the api key
 	fn get_url_for(& self, url_string: &'static str) -> String {
 		if url_string.contains("?") {
 			format!("{}{}&api_key={}", self.base_url, url_string, self.api_key)
@@ -62,6 +72,7 @@ impl TheMovieDB {
 		}
 	}
 
+	/// Returns the data for a given API method or an error string if something has failed
 	fn get_json_data_for(& self, url_string: &'static str) -> Result<Json, String> {
 		let call_url = self.get_url_for(url_string);
 
@@ -90,14 +101,8 @@ impl TheMovieDB {
 	}
 }
 
-// #[test]
-// fn it_works() {
-// 	// TODO: Real tests ;)
-// 	assert!("Four Rooms" == TheMovieDB { api_key: "6da14fa0b6231874a56ee667a505cdcc" }.test());
-// }
-
-fn main() {
-    let themdb = TheMovieDB::new("6da14fa0b6231874a56ee667a505cdcc").unwrap();
-
-	println!("{:?}", themdb);
+#[test]
+fn initialization_test() {
+	// TODO: Real tests ;)
+	assert!(TheMovieDB::new("6da14fa0b6231874a56ee667a505cdcc").is_ok());
 }
